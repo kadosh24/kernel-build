@@ -2,19 +2,6 @@ name: Compilador de Kernel Samsung A20s
 
 on:
   workflow_dispatch:
-    inputs:
-      kernel_repo:
-        description: 'Enlace .git del Kernel del A20s'
-        required: true
-        default: 'https://github.com'
-      kernel_branch:
-        description: 'Rama del repositorio (ej. main o android-11)'
-        required: true
-        default: 'eleven'
-      kernel_defconfig:
-        description: 'Nombre del archivo defconfig (ej. a20s_defconfig)'
-        required: true
-        default: 'a20s_defconfig'
 
 jobs:
   build:
@@ -23,15 +10,19 @@ jobs:
     - name: Instalar Herramientas de Compilacion
       run: |
         sudo apt-get update -y
-        sudo apt-get install -y bc bison build-essential flex libelf-dev libssl-dev tcl-dev zip
+        sudo apt-get install -y bc bison build-essential flex libelf-dev libssl-dev tcl-dev zip wgetunzip
 
-    - name: Descargar Codigo Fuente del Kernel
+    - name: Descargar y Descomprimir Codigo Fuente del Kernel
       run: |
-        git clone --depth=1 ${{ github.event.inputs.kernel_repo }} -b ${{ github.event.inputs.kernel_branch }} kernel-source
+        wget https://github.com -O kernel.zip
+        unzip kernel.zip
+        mv android_kernel_samsung_a20s-eleven kernel-source
         
     - name: Descargar Compilador (Clang/GCC)
       run: |
-        git clone --depth=1 https://github.com -b gcc-master toolchain
+        wget https://github.com -O toolchain.zip
+        unzip toolchain.zip
+        mv gcc-arm64-gcc-master toolchain
 
     - name: Compilar Kernel
       run: |
@@ -39,7 +30,7 @@ jobs:
         export ARCH=arm64
         export SUBARCH=arm64
         export CROSS_COMPILE=../toolchain/bin/aarch64-elf-
-        make O=out ${{ github.event.inputs.kernel_defconfig }}
+        make O=out a20s_defconfig
         make O=out -j$(nproc --all)
 
     - name: Subir Archivo Terminado
