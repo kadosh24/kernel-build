@@ -31,12 +31,20 @@ jobs:
         export SUBARCH=arm64
         export PATH="${{ github.workspace }}/toolchain/bin:${PATH}"
         
-        # Limpieza previa de compilaciones anteriores
+        # Limpieza profunda
         make O=out clean
         make O=out mrproper
         
-        # Configurar y compilar controlando el uso de RAM (-j2)
+        # Generar configuracion base
         make O=out a20s_defconfig
+        
+        # EL TRUCO: Desactivar la depuracion pesada para salvar la memoria RAM del servidor
+        sed -i 's/CONFIG_DEBUG_KERNEL=y/# CONFIG_DEBUG_KERNEL is not set/' out/.config
+        sed -i 's/CONFIG_SLUB_DEBUG=y/# CONFIG_SLUB_DEBUG is not set/' out/.config
+        sed -i 's/CONFIG_PROFILING=y/# CONFIG_PROFILING is not set/' out/.config
+        sed -i 's/CONFIG_KERNEL_GZIP=y/CONFIG_KERNEL_GZIP=y/' out/.config
+        
+        # Compilar usando solo 2 hilos fijos (-j2)
         make O=out CC=clang CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- -j2
 
     - name: Subir Archivo Terminado
