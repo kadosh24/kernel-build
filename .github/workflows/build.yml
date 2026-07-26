@@ -7,6 +7,16 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
+    - name: Configurar Memoria Extendida SWAP de 12GB
+      run: |
+        sudo swapon --show
+        sudo swapoff -a
+        sudo dd if=/dev/zero of=/swapfile bs=1M count=12288
+        sudo chmod 600 /swapfile
+        sudo mkswap /swapfile
+        sudo swapon /swapfile
+        sudo free -h
+
     - name: Instalar Herramientas de Compilacion
       run: |
         sudo apt-get update -y
@@ -18,34 +28,26 @@ jobs:
         unzip kernel.zip
         mv android_kernel_samsung_a20s-eleven kernel-source
         
-    - name: Descargar Compilador Estable (Proton Clang)
+    - name: Descargar Compilador GCC Ultra Liviano (Google Official)
       run: |
-        wget https://github.com -O toolchain.zip
-        unzip toolchain.zip
-        mv proton-clang-master toolchain
+        wget https://googlesource.com -O gcc.tar.gz
+        mkdir toolchain
+        tar -xf gcc.tar.gz -C toolchain
 
     - name: Compilar Kernel
       run: |
         cd kernel-source
         export ARCH=arm64
         export SUBARCH=arm64
-        export PATH="${{ github.workspace }}/toolchain/bin:${PATH}"
+        export CROSS_COMPILE=${{ github.workspace }}/toolchain/bin/aarch64-linux-android-
         
-        # Limpieza profunda
+        # Limpieza previa profunda
         make O=out clean
         make O=out mrproper
         
-        # Generar configuracion base
+        # Cargar configuracion base y compilar de forma ultra estable
         make O=out a20s_defconfig
-        
-        # EL TRUCO: Desactivar la depuracion pesada para salvar la memoria RAM del servidor
-        sed -i 's/CONFIG_DEBUG_KERNEL=y/# CONFIG_DEBUG_KERNEL is not set/' out/.config
-        sed -i 's/CONFIG_SLUB_DEBUG=y/# CONFIG_SLUB_DEBUG is not set/' out/.config
-        sed -i 's/CONFIG_PROFILING=y/# CONFIG_PROFILING is not set/' out/.config
-        sed -i 's/CONFIG_KERNEL_GZIP=y/CONFIG_KERNEL_GZIP=y/' out/.config
-        
-        # Compilar usando solo 2 hilos fijos (-j2)
-        make O=out CC=clang CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- -j2
+        make O=out -j2
 
     - name: Subir Archivo Terminado
       uses: actions/upload-artifact@v4
