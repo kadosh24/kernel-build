@@ -7,16 +7,6 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-    - name: Configurar Memoria Extendida SWAP de 12GB
-      run: |
-        sudo swapon --show
-        sudo swapoff -a
-        sudo dd if=/dev/zero of=/swapfile bs=1M count=12288
-        sudo chmod 600 /swapfile
-        sudo mkswap /swapfile
-        sudo swapon /swapfile
-        sudo free -h
-
     - name: Instalar Herramientas de Compilacion
       run: |
         sudo apt-get update -y
@@ -28,26 +18,28 @@ jobs:
         unzip kernel.zip
         mv android_kernel_samsung_a20s-eleven kernel-source
         
-    - name: Descargar Compilador GCC Ultra Liviano (Google Official)
+    - name: Descargar Compilador GCC Estable y Ligero
       run: |
-        wget https://googlesource.com -O gcc.tar.gz
+        wget https://linaro.org -O gcc.tar.xz
         mkdir toolchain
-        tar -xf gcc.tar.gz -C toolchain
+        tar -xf gcc.tar.xz -C toolchain --strip-components=1
 
     - name: Compilar Kernel
       run: |
         cd kernel-source
         export ARCH=arm64
         export SUBARCH=arm64
-        export CROSS_COMPILE=${{ github.workspace }}/toolchain/bin/aarch64-linux-android-
+        export CROSS_COMPILE=${{ github.workspace }}/toolchain/bin/aarch64-linux-gnu-
         
         # Limpieza previa profunda
         make O=out clean
         make O=out mrproper
         
-        # Cargar configuracion base y compilar de forma ultra estable
+        # Cargar configuracion base de Samsung
         make O=out a20s_defconfig
-        make O=out -j2
+        
+        # EL TRUCO DEFINITIVO: Compilar con UN SOLO NÚCLEO (-j1) para no saturar la RAM
+        make O=out -j1
 
     - name: Subir Archivo Terminado
       uses: actions/upload-artifact@v4
