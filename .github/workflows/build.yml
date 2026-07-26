@@ -1,0 +1,45 @@
+name: Compilador de Kernel Samsung A20s
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Maximizar espacio en disco
+      uses: easimon/maximize-build-space@main
+      with:
+        root-reserve-mb: 5120
+        swap-size-mb: 1024
+        remove-dotnet: 'true'
+        remove-android: 'true'
+        remove-haskell: 'true'
+
+    - name: Instalar Herramientas de Compilacion
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y bc bison build-essential ccache flex glibc-source libelf-dev libssl-dev libtinfo5 openjdk-11-jdk-headless zip
+
+    - name: Descargar Codigo Fuente del Kernel
+      run: |
+        git clone --depth=1 ${{ github.event.inputs.kernel_repo }} -b ${{ github.event.inputs.kernel_branch }} kernel-source
+        
+    - name: Descargar Compilador (Clang/GCC)
+      run: |
+        git clone --depth=1 https://github.com -b gcc-master toolchain
+
+    - name: Compilar Kernel
+      run: |
+        cd kernel-source
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export CROSS_COMPILE=../toolchain/bin/aarch64-elf-
+        make O=out ${{ github.event.inputs.kernel_defconfig }}
+        make O=out -j$(nproc --all)
+
+    - name: Subir Archivo Terminado
+      uses: actions/upload-artifact@v4
+      with:
+        name: Kernel_A20s_Android12
+        path: kernel-source/out/arch/arm64/boot/Image.gz-dtb
