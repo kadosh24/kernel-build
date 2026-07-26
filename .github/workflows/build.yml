@@ -16,12 +16,12 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - name: Instalar Herramientas de Compilacion
       run: |
-        sudo apt-get update
-        sudo apt-get install -y bc bison build-essential ccache flex glibc-source libelf-dev libssl-dev libtinfo5 openjdk-11-jdk-headless zip
+        sudo apt-get update -y
+        sudo apt-get install -y bc bison build-essential flex libelf-dev libssl-dev tcl-dev zip
 
     - name: Descargar Codigo Fuente del Kernel
       run: |
