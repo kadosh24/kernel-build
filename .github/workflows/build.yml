@@ -18,20 +18,26 @@ jobs:
         unzip kernel.zip
         mv android_kernel_samsung_a20s-eleven kernel-source
         
-    - name: Descargar Compilador (Clang/GCC)
+    - name: Descargar Compilador Estable (Proton Clang)
       run: |
         wget https://github.com -O toolchain.zip
         unzip toolchain.zip
-        mv gcc-arm64-gcc-master toolchain
+        mv proton-clang-master toolchain
 
     - name: Compilar Kernel
       run: |
         cd kernel-source
         export ARCH=arm64
         export SUBARCH=arm64
-        export CROSS_COMPILE=../toolchain/bin/aarch64-elf-
+        export PATH="${{ github.workspace }}/toolchain/bin:${PATH}"
+        
+        # Limpieza previa de compilaciones anteriores
+        make O=out clean
+        make O=out mrproper
+        
+        # Configurar y compilar controlando el uso de RAM (-j2)
         make O=out a20s_defconfig
-        make O=out -j$(nproc --all)
+        make O=out CC=clang CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- -j2
 
     - name: Subir Archivo Terminado
       uses: actions/upload-artifact@v4
