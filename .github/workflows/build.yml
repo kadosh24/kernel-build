@@ -2,6 +2,17 @@ name: Compilador de Kernel Samsung A20s
 
 on:
   workflow_dispatch:
+    inputs:
+      kernel_repo:
+        description: 'Enlace .git del Kernel del A20s'
+        required: true
+      kernel_branch:
+        description: 'Rama del repositorio (ej. main o android-11)'
+        required: true
+        default: 'main'
+      kernel_defconfig:
+        description: 'Nombre del archivo defconfig (ej. a20s_defconfig)'
+        required: true
 
 jobs:
   build:
